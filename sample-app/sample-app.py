@@ -7,16 +7,16 @@ import os
 import sys
 
 
-class TestClient:
+class SampleApp:
     def __init__(self):
-        self.globalData = "Hello team, This is a test client app\n"
+        self.globalData = "Hello team, This is a test sample app\n"
         self.failureData = "On purpose FAILURE, dofail = yes\n"
         self.badRequest = "Record Not Found\n"
 
 
 app = Flask(__name__)
 
-test_client = TestClient()
+test_client = SampleApp()
 
 """
 curl http://0.0.0.0:8080?dofail=yes to return a 500
