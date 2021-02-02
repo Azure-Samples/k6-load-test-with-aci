@@ -1,0 +1,14 @@
+FROM python:3.7
+
+RUN mkdir /sample-app/
+COPY ./requirements.txt /sample-app/
+COPY ./sample-app.py ./sample-app/sample-app.py
+
+RUN pip install --upgrade pip
+# RUN pip install -e .
+RUN pip3 install -r /sample-app/requirements.txt
+
+WORKDIR /sample-app/
+
+# EXPOSE 8080
+CMD [ "python", "-u", "sample-app.py" ]
