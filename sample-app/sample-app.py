@@ -6,7 +6,6 @@ import asyncio
 import os
 import sys
 
-
 class SampleApp:
     def __init__(self):
         self.globalData = "Hello team, This is a test sample app\n"
