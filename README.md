@@ -1,57 +1,32 @@
-# Project Name
+---
+page_type: sample
+languages:
+- yaml
+- python
+products:
+- azure
+- azure-devops
+- azure-container-instance
+extensions:
+  services: Containerinstance
+name: Performance Testing with K6 and ACI
+description: "Automate performace tests using K6 and Azure Container Instance."
+urlFragment: "k6-aci"
+---
+# Performance Testing with K6 and ACI
 
-(short, 1-3 sentenced, description of the project)
+This sample code briefly describes how to use [K6](https://k6.io) performance testing tool to execute tests in Azure Container Instance(ACI). 
 
-## Features
-
-This project framework provides the following features:
-
-* Feature 1
-* Feature 2
-* ...
-
-## Getting Started
-
-### Prerequisites
-
-(ideally very short, if any)
-
-- OS
-- Library version
-- ...
-
-### Installation
-
-(ideally very short)
-
-- npm install [package name]
-- mvn install
-- ...
-
-### Quickstart
-(Add steps to get up and running quickly)
-
-1. git clone [repository clone url]
-2. cd [respository name]
-3. ...
+## Creating an Azure Pipeline
 
 
-## Demo
+## The K6 test application docker image
 
-A demo app is included to show how to use the project.
 
-To run the demo, follow these steps:
+## Creating tests scripts
 
-(Add steps to start up the demo)
 
-1.
-2.
-3.
+## Deploying to ACI
 
-## Resources
 
-(Any additional resources or related projects)
-
-- Link to supporting information
-- Link to similar sample
-- ...
+## Publishing test results to Azure DevOps
