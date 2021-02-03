@@ -1,0 +1,104 @@
+trigger: none
+
+name: $(Date:yyMMdd)$(Rev:rr)_$(Build.SourceBranchName)
+
+pool:
+  vmImage: "ubuntu-latest"
+
+parameters:
+  - name: azure_subscription
+    type: string
+    default: ""
+    displayName: Azure Subscription
+
+  - name: acr_name
+    type: string
+    default: ""
+    displayName: Azure Container Registry Name
+
+  - name: resource_group
+    type: string
+    default: ""
+    displayName: Resource Group
+
+  - name: aci_storage_account
+    type: string
+    default: ""
+    displayName: ACI Storage Account
+
+  - name: aci_share_name
+    type: string
+    default: ""
+    displayName: ACI Share Name
+
+  - name: container_name
+    type: string
+    default: ""
+    displayName: ACI Container Name
+
+  - name: sauth_base_url
+    type: string
+    default: "https://p4d.tksvc.gae.csi.cloud.slb-ds.com/v2"
+    displayName: SAuth Base URL
+
+  - name: sauth_client_id
+    type: string
+    default: "0d8230b9a7214d5c91035189dbc57251"
+    displayName: SAuth Client ID
+
+variables:
+  - name: container_image
+    value: ${{ parameters.acr_name }}.azurecr.io/${{ parameters.docker_image}}:latest
+
+  - name: STORAGE_CONNECTION_STRING
+    value: "*****"
+
+steps:
+
+  - task: DownloadSecureFile@1
+    displayName: 'SETUP - Download secure file'
+    name: SAUTH_SECRET_FILE
+    inputs:
+      secureFile: '???'
+
+  - task: DownloadSecureFile@1
+    displayName: 'SETUP - Download Service Account Credentials'
+    name: SERVICE_ACCOUNT_FILE
+    inputs:
+      secureFile: '???'
+
+  - task: AzureCLI@2
+    displayName: "Deploy Perf Test App to ACI"
+    env:
+        SAUTH_SECRET_FILE_PATH: $(SAUTH_SECRET_FILE.secureFilePath)
+        CONTAINER_IMAGE: ${{ variables.container_image }}
+        ACR_SERVER: ${{ parameters.acr_name }}.azurecr.io
+        SERVICE_ACCOUNT_FILE_PATH: $(SERVICE_ACCOUNT_FILE.secureFilePath)
+        ACI_STORAGE_ACCOUNT: ${{ parameters.aci_storage_account }}
+        STORAGE_CONNECTION_STRING: $(STORAGE_CONNECTION_STRING)
+        ACI_SHARE_NAME: ${{ parameters.aci_share_name }}
+        SAUTH_CLIENT_ID: ${{ parameters.sauth_client_id }}
+        SAUTH_BASE_URL: ${{ parameters.sauth_base_url }}
+    inputs:
+        azureSubscription: parameters.azure_subscription
+        scriptType: bash
+        scriptLocation: inlineScript
+        inlineScript: |
+          echo "============== Getting ACR Credentials ================="
+          az acr login --name ${{ parameters.acr_name }}
+          export REGISTRY_USERNAME=`az acr credential show --output tsv --name ${{ parameters.acr_name }} --query username`
+          export REGISTRY_PASSWORD=`az acr credential show --output tsv --name ${{ parameters.acr_name }} --query passwords[0].value`
+          export STORAGE_KEY=$(az storage account keys list --resource-group ${{ parameters.resource_group }} --account-name $ACI_STORAGE_ACCOUNT --query "[0].value" --output tsv)
+          export SERVICE_ACCOUNT="$(cat $SERVICE_ACCOUNT_FILE_PATH)"
+          export SAUTH_SECRET="$(cat $SAUTH_SECRET_FILE_PATH)"
+          export REPORT_DIR=/mnt/$ACI_SHARE_NAME
+          echo $REPORT_DIR
+          export SAUTH_CLIENT_ID=$SAUTH_CLIENT_ID
+          export SAUTH_BASE_URL=$SAUTH_BASE_URL
+
+          echo "============== Substituting with Env Variables ================="
+          envsubst < build/deploy-aci.yaml > build/deploy-aci-out.yaml
+
+          echo "============== Creating Azure Container Instance ================="
+          az container create --resource-group ${{ parameters.resource_group }} --file build/deploy-aci-out.yaml
+          az container start --name ${{ variables.container_group_name }} --resource-group ${{ parameters.resource_group }}
