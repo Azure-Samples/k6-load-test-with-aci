@@ -6,25 +6,30 @@ trigger:
 pool:
   vmImage: 'ubuntu-latest'
 
+
+variables:
+- group: 'k6_variables'
+
 parameters:
-  - name: azure_subscription
+  - name: azure_subscription_id
     type: string
-    default: ""
+    default: $AZURE_SUBSCRIPTION_ID
     displayName: Azure Subscription
 
   - name: docker_image
     type: string
-    default: ""
+    default: "sample_app"
     displayName: Name of Docker Image to Build
+
+  - name: resource_group
+    type: string
+    default: $K6_ACR_RESOURCE_GROUP
+    displayName: Resource Group for ACR
 
   - name: acr_name
     type: string
-    default: ""
+    default: $K6_ACR
     displayName: Azure Container Registry Name
-
-variables:
-  - name: container_image
-    value: ${{ parameters.acr_name }}.azurecr.io/${{ parameters.docker_image}}:latest
 
 steps:
 
@@ -37,16 +42,8 @@ steps:
         echo $current_utc_date
 
         echo ----- BUILD IMAGE ------------
+        echo $AZURE_SERVICE_CONNECTION
+        echo $AZURE_SUBSCRIPTION_ID
+        echo $K6_ACR_RESOURCE_GROUP
+        echo $K6_ACR
         docker build -t ${{ parameters.docker_image}}:latest -f ./build/Dockerfile . # TODO: confirm Dockerfile location before merge
-
-  - task: AzureCLI@2
-    displayName: 'Push Image to ACR'
-    inputs:
-      azureSubscription: parameters.azure_subscription
-      scriptType: bash
-      scriptLocation: inlineScript
-      inlineScript: |
-        set -e
-        az acr login --name ${{ parameters.acr_name }}
-        docker tag ${{ parameters.docker_image}}:latest ${{ variables.container_image }}
-        docker push ${{ variables.container_image }}
