@@ -9,6 +9,12 @@ pool:
 
 variables:
 - group: 'k6_variables'
+- name: service_connection
+  value: $(SERVICE_CONNECTION_NAME)
+- name: sample_app_image
+  value: 'movie_sample_app'
+- name: k6_test_image
+  value: 'k6_test'
 
 parameters:
   - name: azure_subscription_id
@@ -16,10 +22,10 @@ parameters:
     default: $AZURE_SUBSCRIPTION_ID
     displayName: Azure Subscription
 
-  - name: docker_image
+  - name: azure_service_connection
     type: string
-    default: "sample_app"
-    displayName: Name of Docker Image to Build
+    default: $(SERVICE_CONNECTION_NAME)
+    displayName: Azure Service Connection 
 
   - name: resource_group
     type: string
@@ -31,19 +37,38 @@ parameters:
     default: $K6_ACR
     displayName: Azure Container Registry Name
 
-steps:
+stages:
+  - stage: build
+    # condition: and(succeeded(), eq('${{ parameters.skip_build_stage }}', false))
+    jobs:
+      - job: build_images
+        variables:
+          - group: 'k6_variables'
+        steps:
+          - task: Bash@3
+            displayName: Build Sample App Image
+            inputs:
+              targetType: 'inline'
+              script: |
+                current_utc_date=`date --utc`
+                echo $current_utc_date
+                echo ${{ parameters.azure_service_connection }}
+                echo ----- BUILDING SAMPLE APP IMAGE ------------
+                docker build -t ${{ variables.sample_app_image }}:latest -f ./sample-app/dockerfile .
 
-  - task: Bash@3
-    displayName: Build Image
-    inputs:
-      targetType: 'inline'
-      script: |
-        current_utc_date=`date --utc`
-        echo $current_utc_date
+                echo ----- BUILDING K6 TEST IMAGE ------------
+                docker build -t ${{ variables.k6_test_image }}:latest -f ./k6/dockerfile .
 
-        echo ----- BUILD IMAGE ------------
-        echo $AZURE_SERVICE_CONNECTION
-        echo $AZURE_SUBSCRIPTION_ID
-        echo $K6_ACR_RESOURCE_GROUP
-        echo $K6_ACR
-        docker build -t ${{ parameters.docker_image}}:latest -f ./build/Dockerfile . # TODO: confirm Dockerfile location before merge
+          - task: AzureCLI@2
+            displayName: 'Publish Images to ACR'
+            inputs:
+              azureSubscription: ${{ parameters.azure_service_connection }}
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                set -e
+                az acr login --name ${{ parameters.acr_name }}
+                docker push ${{ parameters.acr_name}}.azurecr.io/${{ variables.sample_app_image }}:latest
+                docker push ${{ parameters.acr_name}}.azurecr.io/${{ variables.k6_test_image }}:latest
+                
+                
