@@ -24,7 +24,7 @@ parameters:
 
   - name: azure_service_connection
     type: string
-    default: $(SERVICE_CONNECTION_NAME)
+    default: $(AZURE_SERVICE_CONNECTION)
     displayName: Azure Service Connection 
 
   - name: resource_group
