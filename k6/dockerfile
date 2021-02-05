@@ -1,0 +1,8 @@
+FROM loadimpact/k6
+
+WORKDIR /usr/src/k6-test
+
+COPY ./k6/tests/ .
+ENV URL="https://www.yahoo.com"
+EXPOSE 8080
+ENTRYPOINT ["k6", "run", "script.js"]
